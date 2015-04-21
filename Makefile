@@ -1,9 +1,14 @@
+FLAGS = -Wall -std=c99
 
-mycloud: csapp
-	gcc -pthread csapp.o mycloud.c -o mycloud -std=c99
+
+mycloud: csapp util
+	gcc $(FLAGS) -pthread csapp.o util.o mycloud.c -o mycloud
+
+util:
+	gcc $(FLAGS) util.c -c
 
 csapp:
-	gcc -Wall csapp.c -c
+	gcc csapp.c -c
 
 clean:
 	rm *.o

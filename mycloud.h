@@ -1,6 +1,7 @@
 #ifndef __MYCLOUD_H__
 #define __MYCLOUD_H__
 #include "csapp.h"
+#include "util.h"
 #include <netdb.h>
 #include <string.h>
 #include <stdio.h>

@@ -96,7 +96,7 @@ int mycloud_getfile(Request server, char *filename, char *data, int data_length)
 	Rio_readnb(&rio, buf, 4);
 	unsigned long nStatus = 0;
 	for(int i = 0; i < 4; i++){
-		nStatus += buf[i] * (1 << i*2);
+		nStatus += buf[i] * (1 << i*8);
 	}
 	unsigned long status = ntohl(nStatus);
 	if(status != 0){
@@ -105,7 +105,7 @@ int mycloud_getfile(Request server, char *filename, char *data, int data_length)
 	Rio_readnb(&rio, buf, 4);
 	unsigned long nSize = 0;
 	for(int i = 0; i < 4; i++){
-		nSize += buf[i] * (1 << i*2);
+		nSize += buf[i] * (1 << i*8);
 	}
 	unsigned long size = htonl(nSize);
 	if(data_length < size){
@@ -146,7 +146,7 @@ int mycloud_delfile(Request server, char* filename){
 	Rio_readnb(&rio, buf, 4);
 	unsigned long nStatus = 0;
 	for(int i = 0; i < 4; i++){
-		nStatus += buf[i] * (1 << i*2);
+		nStatus += buf[i] * (1 << i*8);
 	}
 	unsigned long status = ntohl(nStatus);
 	if(status != 0){

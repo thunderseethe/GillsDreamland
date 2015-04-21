@@ -11,11 +11,14 @@ csapp.c:
 
 csapp.o: csapp.h csapp.c
 
-server: server.c csapp.o
-	gcc $(CPPFLAGS) server.c csapp.o -lpthread -o server -std=c99
+util.o:
+	gcc CFLAGS -std=c99 util.c -c
 
-mycloud: mycloud.c csapp.o
-	gcc $(CPPFLAGS) mycloud.c csapp.o -lpthread -o mycloud -std=c99
+server: server.c csapp.o util.o
+	gcc $(CPPFLAGS) server.c csapp.o util.o -lpthread -o server -std=c99
+
+mycloud: mycloud.c csapp.o util.o
+	gcc $(CPPFLAGS) mycloud.c csapp.o util.o -lpthread -o mycloud -std=c99
 
 mcput: mcput.cpp csapp.o
 	g++ $(CPPFLAGS) mcput.cpp csapp.o -lpthread -o mcput

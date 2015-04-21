@@ -56,7 +56,7 @@ int mycloud_putfile(Request server, char *filename, char *data, int size){
 	int clientfd;
 	int req_len = 92 + size;
 	int resp_len = 4;
-	char* buf;
+	unsigned char* buf = malloc(sizeof(unsigned char) * resp_len);
 	
 	/* BUILD REQUEST */
 	unsigned char* request = malloc(req_len*sizeof(unsigned char));
@@ -82,7 +82,7 @@ int mycloud_putfile(Request server, char *filename, char *data, int size){
 int mycloud_getfile(Request server, char *filename, char *data, int data_length){
 	int clientfd;
 	int req_len = 88;
-	char* buf;
+	unsigned char* buf = malloc(4*sizeof(unsigned char));
 	unsigned char* request = malloc(req_len*sizeof(unsigned char));
 	int result = build_get_req(request, server.secretkey, filename);
 	if(result == -1){
@@ -112,13 +112,11 @@ int mycloud_getfile(Request server, char *filename, char *data, int data_length)
 		size = data_length;
 	}
 	if(size < MAXLINE){
-		Rio_readnb(&rio, buf, size);
-		strcat(data, buf);
+		Rio_readnb(&rio, data, size);
 	}
 	else{
 		for(int i = 0; i < size; i += MAXLINE){
-			Rio_readnb(&rio, buf, i);
-			strcat(data, buf);
+			Rio_readnb(&rio, data+i, i);
 		}
 	}
 	/*printf("0:\t");
@@ -134,7 +132,7 @@ int mycloud_getfile(Request server, char *filename, char *data, int data_length)
 int mycloud_delfile(Request server, char* filename){
 	int clientfd;
 	int req_len = 88;
-	char *buf;
+	unsigned char* buf = malloc(4*sizeof(unsigned char));
 	unsigned char* request = malloc(req_len*sizeof(unsigned char));
 	int result = build_del_req(request, server.secretkey, filename);
 	if(result == -1){
@@ -201,23 +199,13 @@ int mycloud_listfiles(Request server, char* listbuf, int list_length){
 		size = list_length;
 	}
 	if(size < MAXLINE){
-		Rio_readnb(&rio, buf, size);
-		strcat(listbuf, buf);
+		Rio_readnb(&rio, listbuf, size);
 	}
 	else{
 		for(int i = 0; i < size; i += MAXLINE){
-			Rio_readnb(&rio, buf, size);
-			strcat(listbuf, buf);
+			Rio_readnb(&rio, listbuf+i, size);
 		}
 	}
-	/*printf("0:\t");
-	for(int i = 0; i < req_len; i++){
-		printf("%02X\t", request[i]);
-		if(((i+1) % 4) == 0){
-			printf("\n%d:\t", i+1);
-		}
-	}
-	printf("\n");*/
 	return 0;
 }
 int main(int argc, char** argv){

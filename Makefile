@@ -12,7 +12,7 @@ csapp.c:
 csapp.o: csapp.h csapp.c
 
 util.o:
-	gcc CFLAGS -std=c99 util.c -c
+	gcc $(CFLAGS) -std=c99 util.c -c
 
 server: server.c csapp.o util.o
 	gcc $(CPPFLAGS) server.c csapp.o util.o -lpthread -o server -std=c99

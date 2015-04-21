@@ -1,1 +1,1 @@
-unsigned int char4ToInt(char* buf);
+unsigned int char4ToInt(unsigned char* buf);

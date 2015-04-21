@@ -4,6 +4,7 @@
 /* $begin echoserverimain */
 #include "server.h"
 #include "csapp.h"
+#include "util.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,38 +17,29 @@ void processInput(int connfd, int secretKey) {
     unsigned char *secretKeyBuf = malloc(sizeof(char) * 4);
     unsigned char *requestBuf = malloc(sizeof(char) * 4);
     unsigned char *fileBuf = malloc(sizeof(char) * 80);
-    unsigned char *fileSizeBuf;
+    unsigned char *returnCodeBuf = malloc(sizeof(char) * 4);
+    unsigned char *sizeCodeBuf = malloc(sizeof(char) * 4);
     rio_t rio;
     Rio_readinitb(&rio, connfd);
 
-
-    //return buffers
-    char *returnCodeBuf = malloc(sizeof(char) * 4);;
-    char *sizeCodeBuf = malloc(sizeof(char) * 4);;
+    //unsigned int fileSizeNet;
+    unsigned int nsecretKey, request;
+    //unsigned int fileSize;
+    bool shouldUseFilename = false, error = false, willReceiveFile = false;
     
     //read in the secret key and type of request.
     size = Rio_readnb(&rio, secretKeyBuf, 4);
+    if(size!=4){
+        error = true;
+    }
     size = Rio_readnb(&rio, requestBuf, 4);
-    
-    unsigned int nsecretKeyNet, requestNet, fileSizeNet;
-    unsigned int nsecretKey, request, fileSize;
-    bool shouldUseFilename = false, willReceiveFile = false, error = false;
-    for(int i = 0; i < 4; i++){
-        nsecretKeyNet += secretKeyBuf[i] * (1 << i*2);
+    if(size!=4){
+        error = true;
     }
-    for(int i = 0; i < 4; i++){
-        requestNet += requestBuf[i] * (1 << i*2);
-    }
-    nsecretKey = ntohl(nsecretKeyNet);
-    request = ntohl(requestNet);
-    for (int i = 0; i < 4; ++i)
-    {
-        printf("RECEIVED THIS: %x\n",secretKeyBuf[i]);
 
-    }
-    
-    printf("Secret Key = %x\n", nsecretKeyNet);
-    printf("Secret Key = %x\n", nsecretKey);
+    nsecretKey = char4ToInt(secretKeyBuf);
+    request = char4ToInt(requestBuf);
+    printf("Secret Key = %d\n", nsecretKey);
     printf("Request Type = ");
 
     //check the secret keys and set error
@@ -91,21 +83,23 @@ void processInput(int connfd, int secretKey) {
         size = Rio_readnb(&rio, fileBuf, 80);
         printf("%s\n",fileBuf);
     }
-    if (willReceiveFile) {
-    	size = Rio_readnb(&rio, fileSizeBuf, 4);
+     if (willReceiveFile) {
+    // 	size = Rio_readnb(&rio, fileSizeBuf, 4);
     	
     	
-    	fileSizeNet = *((int *) &fileSizeBuf[0]);
-    	fileSize = ntohl(fileSizeNet);
+    // 	fileSizeNet = *((int *) &fileSizeBuf[0]);
+    // 	fileSize = ntohl(fileSizeNet);
     	
-    	//printf("Creating file buf of size %d\n",fileSize);
+    // 	//printf("Creating file buf of size %d\n",fileSize);
     	
-    	char fileContentBuf[fileSize];
-    	size = Rio_readnb(&rio, fileContentBuf, fileSize);
+    // 	char fileContentBuf[fileSize];
+    // 	size = Rio_readnb(&rio, fileContentBuf, fileSize);
     	
-    }
+     }
     //all input should be read in now. Now to handle the files themselves
-    int returnCode;
+
+    unsigned int returnCode;
+    unsigned int sizeCode;
     if(error){
         returnCode = -1;
         printf("Operation Status = error\n");
@@ -113,12 +107,13 @@ void processInput(int connfd, int secretKey) {
         returnCode = 0;
         printf("Operation Status = success\n");
     }
-    int netCode = htonl(returnCode);
-    sprintf(returnCodeBuf, "%i", netCode);
+    intToChar4(returnCode, returnCodeBuf);
+    for (int i = 0; i < 4; ++i)
+                {
+                    printf("%d ",returnCodeBuf[i]);
+                }
     Rio_writen(connfd, returnCodeBuf, 4);
 
-    //TODO: delete
-    int netZero;
     if(!error){
         switch(request) {
             case 0:
@@ -129,8 +124,8 @@ void processInput(int connfd, int secretKey) {
                 break;
             case 3:
                 //list
-                netZero = htonl(0);
-                sprintf(sizeCodeBuf, "%i", netZero);
+                sizeCode = 0;
+                intToChar4(sizeCode, sizeCodeBuf);
                 Rio_writen(connfd, sizeCodeBuf, 4);
                 break;
             default:

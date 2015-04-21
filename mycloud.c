@@ -207,8 +207,8 @@ int main(int argc, char** argv){
 	server.port = 1234;
 	server.secretkey = 12345;
 	//mycloud_getfile(server, "test.txt", "file data goes here", 19);
-	char* list = malloc(100*sizeof(char));
-	mycloud_listfiles(server, list, 100);
-	printf("%s", list);
+	char* data = malloc(100*sizeof(char));
+	mycloud_getfile(server, "test.txt", data, 100);
+	printf("data:\n%s\nEOF", data);
 	return 0;
 }

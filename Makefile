@@ -24,16 +24,16 @@ mycloud: mycloud.c csapp.o util.o
 	gcc $(CFLAGS) mycloud.c csapp.o util.o -lpthread -o mycloud -std=c99
 
 mcput: mcput.cpp csapp.o
-	g++ $(CPPFLAGS) mcput.cpp csapp.o -lpthread -o mcput
+	gcc $(CFLAGS) -std=c99 mcput.c csapp.o -lpthread -o mcput
 
 mcget: mcget.cpp csapp.o
-	g++ $(CPPFLAGS) mcget.cpp csapp.o -lpthread -o mcget
+	gcc $(CFLAGS) -std=c99 mcget.c csapp.o -lpthread -o mcget
 
 mcdel: mcdel.cpp csapp.o
-	g++ $(CPPFLAGS) mcdel.cpp csapp.o -lpthread -o mcdel
+	gcc $(CFLAGS) -std=c99 mcdel.c csapp.o -lpthread -o mcdel
 
 mclist: mclist.cpp csapp.o
-	g++ $(CPPFLAGS) mclist.cpp csapp.o -lpthread -o mclist
+	gcc $(CFLAGS) -std=c99 mclist.c csapp.o -lpthread -o mclist
 
 .PHONY: clean
 clean:

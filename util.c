@@ -7,7 +7,7 @@ unsigned int char4ToInt(unsigned char* buf){
 }
 
 void intToChar4(unsigned int data, unsigned char* buf){
-	for(int i = 0; i > 4; i++){
+	for(int i = 0; i < 4; i++){
 		buf[i] = (data >> (3-i)*8) & 0xFF;
 	}
 }

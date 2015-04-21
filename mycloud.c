@@ -174,13 +174,12 @@ int mycloud_listfiles(Request server, char* listbuf, int list_length){
 	Rio_readinitb(&rio, clientfd);
 	Rio_writen(clientfd, request, req_len);
 	Rio_readnb(&rio, buf, 4);
-	unsigned long nStatus = 0;
 	printf("buf = ");
 	for(int i = 0; i < 4; i++){
 		printf("%02x\t", buf[i]);
-		nStatus += buf[i] * (1 << i*2);
 	}
-	printf("\nstatus: %lx\n", nStatus);
+	int nStatus = char4ToInt(buf);
+	printf("\nstatus: %d\n", nStatus);
 	unsigned long status = ntohl(nStatus);
 	return 0;
 	if(status != 0){
@@ -209,7 +208,7 @@ int main(int argc, char** argv){
 	Request server;
 	server.hostname = "192.168.77.232";
 	server.port = 1234;
-	server.secretkey = 12345;
+	server.secretkey = 6969;
 	//mycloud_getfile(server, "test.txt", "file data goes here", 19);
 	char* list = "empty list";
 	mycloud_listfiles(server, list, 100);

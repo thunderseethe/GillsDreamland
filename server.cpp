@@ -43,7 +43,7 @@ void processInput(int connfd, unsigned int secretKey) {
     unsigned int nsecretKey, request, fileSize;
     unsigned int bufferSize = 0; //for EOF
     //bools used for method logic (not necessary, but helps with reading the file)
-    bool shouldUseFilename = false, error = false, willReceiveFile = false, list = false, get = false;
+    bool shouldUseFilename = false, error = false, list = false, get = false, put = false, del = false;
     
     //read in the secret key and type of request.
     size = Rio_readnb(&rio, secretKeyBuf, 4);
@@ -79,13 +79,14 @@ void processInput(int connfd, unsigned int secretKey) {
             printf("put\n");
             printf("Filename = ");
             shouldUseFilename = true;
-            willReceiveFile = true;
+            put = true;
             break;
         case 2:
             //del
             printf("del\n");
             printf("Filename = ");
             shouldUseFilename = true;
+            del = true;
             break;
         case 3:
             //list
@@ -103,12 +104,27 @@ void processInput(int connfd, unsigned int secretKey) {
         size = Rio_readnb(&rio, fileNameBuf, 80);
         printf("%s\n",fileNameBuf);
     }
-    if (willReceiveFile) {
+    if (put) {
         size = Rio_readnb(&rio, fileSizeBuf, 4);
         fileSize = char4ToInt(fileSizeBuf);
         printf("Creating file buf of size %d\n",fileSize);
-        fileContentsBuf = (char*)malloc(sizeof(char) * fileSize);
-        size = Rio_readnb(&rio, fileContentsBuf, fileSize);   
+        fileContentsBuf = (char*)malloc(sizeof(char) * (fileSize+1));
+        size = Rio_readnb(&rio, fileContentsBuf, fileSize);
+
+        FILE *stream;
+        char filePath[100];
+        strcpy(filePath, "./files/");
+        strcat(filePath, fileNameBuf);
+        if ((stream = fopen(filePath, "w")))
+        {
+            fwrite(fileContentsBuf, 1, fileSize, stream);
+            //Debug print
+            printf("Write: %s\n",fileContentsBuf);
+            fclose(stream);
+        } else {
+            perror("Create file");
+            error = true;
+        }
     }
     if (list)
     {
@@ -161,17 +177,26 @@ void processInput(int connfd, unsigned int secretKey) {
             fileSize = ftell(stream);
             fseek(stream, 0L, SEEK_SET);
             //printf("fileSize: %d\n",fileSize);
-            fileContentsBuf = (char*)malloc(fileSize+1);
+            fileContentsBuf = (char*)malloc(sizeof(char) * (fileSize+1));
             size_t size=fread(fileContentsBuf,1,fileSize,stream);
             fileContentsBuf[size]=0; //add EOF
             //Debug print
-            //printf("Read: %s\n",fileContentsBuf);
+            printf("Read: %s\n",fileContentsBuf);
             fclose(stream);
         } else {
             perror("Open file");
             error = true;
         }
-
+    }
+    if(del){
+        char filePath[100];
+        strcpy(filePath, "./files/");
+        strcat(filePath, fileNameBuf);
+        printf("deleting file at path: %s\n",filePath);
+        int delResult = unlink(filePath);
+        if(delResult != 0){
+            error = true;
+        }
     }
     //all input should be read in now. Now to handle the files themselves
 
@@ -185,6 +210,7 @@ void processInput(int connfd, unsigned int secretKey) {
     }
     intToChar4(returnCode, returnCodeBuf);
     Rio_writen(connfd, returnCodeBuf, 4);
+    //printf("sent\n");
 
     if(!error){
         switch(request) {
@@ -195,10 +221,6 @@ void processInput(int connfd, unsigned int secretKey) {
                 intToChar4(bufferSize, returnSizeCodeBuf);
                 Rio_writen(connfd, returnSizeCodeBuf, 4);
                 Rio_writen(connfd, fileContentsBuf, bufferSize);
-                break;
-            case 1:
-                break;
-            case 2:
                 break;
             case 3:
                 //list
@@ -211,13 +233,8 @@ void processInput(int connfd, unsigned int secretKey) {
                 break;
         }
     }
-    
-    //rio_readn(int fd, void *usrbuf, size_t n)
-    //while((n = Rio_readn(&rio, buf, MAXLINE)) != 0) { //line:netp:echo:eof
-    //  printf("server received %d bytes\n", n);
-    //send the response
-    //  Rio_writen(connfd, buf, n);
-    //}
+
+    printf("--------------------------\n");
 }
 
 int main(int argc, char **argv) 

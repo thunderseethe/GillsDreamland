@@ -174,26 +174,23 @@ int mycloud_listfiles(Request server, char* listbuf, int list_length){
 	Rio_readinitb(&rio, clientfd);
 	Rio_writen(clientfd, request, req_len);
 	Rio_readnb(&rio, buf, 4);
-	printf("buf = ");
-	for(int i = 0; i < 4; i++){
-		printf("%02x\t", buf[i]);
-	}
-	int nStatus = char4ToInt(buf);
-	printf("\nstatus: %d\n", nStatus);
-	unsigned long status = ntohl(nStatus);
-	return 0;
+	
+	int status = char4ToInt(buf);
+	printf("\nstatus: %d\n", status);
 	if(status != 0){
 		return -1;
 	}
 	Rio_readnb(&rio, buf, 4);
-	unsigned long nSize = 0;
+	printf("buf = ");
 	for(int i = 0; i < 4; i++){
-		nSize += buf[i] * (1 << i*2);
+		printf("%02x\t", buf[i]);
 	}
-	unsigned long size = htonl(nSize);
+	printf("\n");
+	int size = char4ToInt(buf);
 	if(list_length < size){
 		size = list_length;
 	}
+	printf("size: %d\n", size);
 	if(size < MAXLINE){
 		Rio_readnb(&rio, listbuf, size);
 	}
@@ -208,9 +205,9 @@ int main(int argc, char** argv){
 	Request server;
 	server.hostname = "192.168.77.232";
 	server.port = 1234;
-	server.secretkey = 6969;
+	server.secretkey = 12345;
 	//mycloud_getfile(server, "test.txt", "file data goes here", 19);
-	char* list = "empty list";
+	char* list = "\0";
 	mycloud_listfiles(server, list, 100);
 	printf("%s\n", list);
 	return 0;

@@ -94,10 +94,7 @@ int mycloud_getfile(Request server, char *filename, char *data, int data_length)
 	Rio_readinitb(&rio, clientfd);
 	Rio_writen(clientfd, request, req_len);
 	Rio_readnb(&rio, buf, 4);
-	unsigned long nStatus = 0;
-	for(int i = 0; i < 4; i++){
-		nStatus += buf[i] * (1 << i*8);
-	}
+	int nStatus = char4ToInt(buf);
 	unsigned long status = ntohl(nStatus);
 	if(status != 0){
 		return -1;

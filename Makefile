@@ -11,7 +11,7 @@ csapp.c:
 
 csapp.o: csapp.h csapp.c
 
-util.o:
+util.o: util.c
 	gcc $(CFLAGS) -std=c99 util.c -c
 
 server: server.c csapp.o util.o

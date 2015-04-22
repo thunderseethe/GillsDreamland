@@ -22,7 +22,7 @@ bool del(char* fileNameBuf){
     char filePath[100];
     strcpy(filePath, "./files/");
     strcat(filePath, fileNameBuf);
-    printf("deleting file at path: %s\n",filePath);
+    //printf("deleting file at path: %s\n",filePath);
     int delResult = unlink(filePath);
     if(delResult != 0){
         success = false;
@@ -36,7 +36,7 @@ bool put(char* fileNameBuf, unsigned char*fileSizeBuf, char* fileContentsBuf, ri
     size_t size = Rio_readnb(&rio, fileSizeBuf, 4);
     if(size!=4){success = false;}
     unsigned int fileSize = char4ToInt(fileSizeBuf);
-    printf("Creating file buf of size %d\n",fileSize);
+    //printf("Creating file buf of size %d\n",fileSize);
     fileContentsBuf = (char*)malloc(sizeof(char) * (fileSize+1));
     size = Rio_readnb(&rio, fileContentsBuf, fileSize);
 
@@ -49,7 +49,7 @@ bool put(char* fileNameBuf, unsigned char*fileSizeBuf, char* fileContentsBuf, ri
     {
         fwrite(fileContentsBuf, 1, fileSize, stream);
         //Debug print
-        printf("Write: %s\n",fileContentsBuf);
+        //printf("Write: %s\n",fileContentsBuf);
         fclose(stream);
     } else {
         perror("Create file");
@@ -78,13 +78,51 @@ bool get(char* fileNameBuf, char* fileContentsBuf){
         size_t size=fread(fileContentsBuf,1,fileSize,stream);
         fileContentsBuf[size]=0; //add EOF
         //Debug print
-        printf("Read: %s\n",fileContentsBuf);
+        //printf("Read: %s\n",fileContentsBuf);
         fclose(stream);
     } else {
         perror("Open file");
         success = false;
     }
     return success;
+}
+
+bool list(char* returnListBuf, int bufferSize){
+        bool success = true;
+        DIR *d, *e;
+        struct dirent *dir;
+        d = opendir("./files");
+        if (d)
+        {
+            while ((dir = readdir(d)) != NULL)
+            {
+                if (dir->d_type == DT_REG)
+                {
+                    bufferSize += strlen(dir->d_name);
+                    bufferSize += 1;
+                }
+            }
+        } else { success = false; }
+        closedir(d);
+        returnListBuf = (char*)malloc(sizeof(char) * bufferSize);
+        e = opendir("./files");
+        int counter = 0;
+        if (e)
+        {
+            while ((dir = readdir(e)) != NULL)
+            {
+                if (dir->d_type == DT_REG)
+                {
+                    printf("%s\n",dir->d_name);
+                    char temp[strlen(dir->d_name) + 1];
+                    sprintf(temp,"%s\n",dir->d_name);
+                    memcpy(&returnListBuf[counter], temp, strlen(temp));
+                    counter += strlen(temp);
+                    // printf("%s\n", dir->d_name);   
+                }
+            }
+        } else { success = false; }
+        return success;
 }
 
 void processInput(int connfd, unsigned int secretKey) {
@@ -96,10 +134,10 @@ void processInput(int connfd, unsigned int secretKey) {
     //get and put
     unsigned char *fileSizeBuf = (unsigned char*)malloc(sizeof(char) * 4);
     char *fileNameBuf = (char*)malloc(sizeof(char) * 80);
-    char *fileContentsBuf;
+    char *fileContentsBuf = (char*)malloc(sizeof(char) * 80);
 
     //list buffers
-    unsigned char *returnListBuf;
+    char *returnListBuf = (char*)malloc(sizeof(char) * 80);
 
     //return buffers
     unsigned char *returnCodeBuf = (unsigned char*)malloc(sizeof(char) * 4);
@@ -178,48 +216,15 @@ void processInput(int connfd, unsigned int secretKey) {
         if (!put(fileNameBuf, fileSizeBuf, fileContentsBuf, rio))
             error = true;
     }
-    if (shouldList)
-    {
-         //for end of file
-        DIR *d, *e;
-        struct dirent *dir;
-        d = opendir("./files");
-        if (d)
-        {
-            while ((dir = readdir(d)) != NULL)
-            {
-                if (dir->d_type == DT_REG)
-                {
-                    bufferSize += strlen(dir->d_name);
-                    bufferSize += 1;
-                }
-            }
-        }
-        closedir(d);
-        returnListBuf = (unsigned char*)malloc(sizeof(char) * bufferSize);
-        e = opendir("./files");
-        int counter = 0;
-        if (e)
-        {
-            while ((dir = readdir(e)) != NULL)
-            {
-                if (dir->d_type == DT_REG)
-                {
-                    printf("%s\n",dir->d_name);
-                    char temp[strlen(dir->d_name) + 1];
-                    sprintf(temp,"%s\n",dir->d_name);
-                    memcpy(&returnListBuf[counter], temp, strlen(temp));
-                    counter += strlen(temp);
-                    // printf("%s\n", dir->d_name);   
-                }
-            }
-        }
-    }
-    if(shouldGet){
-        if (!put(fileNameBuf, fileSizeBuf, fileContentsBuf, rio))
+    if (shouldList) {
+        if (!list(returnListBuf, bufferSize))
             error = true;
     }
-    if(shouldDel){
+    if(shouldGet) {
+        if (!get(fileNameBuf, fileContentsBuf))
+            error = true;
+    }
+    if(shouldDel) {
         if (!del(fileNameBuf))
             error = true;
     }
@@ -241,14 +246,14 @@ void processInput(int connfd, unsigned int secretKey) {
             case 0:
                 //get
                 bufferSize = strlen(fileContentsBuf) + 1;
-                printf("Size of file: %d\n",bufferSize);
+                //printf("Size of file: %d\n",bufferSize);
                 intToChar4(bufferSize, returnSizeCodeBuf);
                 Rio_writen(connfd, returnSizeCodeBuf, 4);
                 Rio_writen(connfd, fileContentsBuf, bufferSize);
                 break;
             case 3:
                 //list
-                printf("Size of files list: %d\n",bufferSize);
+                //printf("Size of files list: %d\n",bufferSize);
                 intToChar4(bufferSize, returnSizeCodeBuf);
                 Rio_writen(connfd, returnSizeCodeBuf, 4);
                 Rio_writen(connfd, returnListBuf, bufferSize);

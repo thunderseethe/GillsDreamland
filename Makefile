@@ -1,4 +1,4 @@
-CFLAGS = -Wall
+CFLAGS = -Wall -std=gnu99
 CPPFLAGS = -Wall
 
 all: server mcput mcget mcdel mclist
@@ -14,26 +14,32 @@ csappcpp.h:
 
 csapp.o: csapp.h csapp.c
 
+
 util.o: util.c
-	gcc $(CFLAGS) -std=c99 util.c -c
+	gcc $(CFLAGS) util.c -c
 
 server: server.cpp csappcpp.h csapp.o util.o
 	g++ $(CPPFLAGS) server.cpp csapp.o util.o -lpthread -o server
 
-mycloud: mycloud.c csapp.o util.o
-	gcc $(CFLAGS) mycloud.c csapp.o util.o -lpthread -o mycloud -std=c99
+mycloud.o: mycloud.c
+	gcc $(CFLAGS) mycloud.c -c -o mycloud.o
 
-mcput: mcput.cpp csapp.o
-	gcc $(CFLAGS) -std=c99 mcput.c csapp.o -lpthread -o mcput
+mycloud: mycloud.o csapp.o util.o
+	gcc $(CFLAGS) mycloud.o csapp.o util.o -lpthread -o mycloud
 
-mcget: mcget.cpp csapp.o
-	gcc $(CFLAGS) -std=c99 mcget.c csapp.o -lpthread -o mcget
+client: mcput mcget mcdel mclist
 
-mcdel: mcdel.cpp csapp.o
-	gcc $(CFLAGS) -std=c99 mcdel.c csapp.o -lpthread -o mcdel
+mcput: mcput.c csapp.o mycloud.o util.o
+	gcc $(CFLAGS) mcput.c mycloud.o util.o csapp.o -lpthread -o mcput
 
-mclist: mclist.cpp csapp.o
-	gcc $(CFLAGS) -std=c99 mclist.c csapp.o -lpthread -o mclist
+mcget: mcget.c csapp.o mycloud.o util.o
+	gcc $(CFLAGS) mcget.c mycloud.o util.o csapp.o -lpthread -o mcget
+
+mcdel: mcdel.c csapp.o mycloud.o util.o
+	gcc $(CFLAGS) mcdel.c mycloud.o util.o csapp.o -lpthread -o mcdel
+
+mclist: mclist.c csapp.o mycloud.o util.o
+	gcc $(CFLAGS) mclist.c mycloud.o util.o csapp.o -lpthread -o mclist
 
 .PHONY: clean
 clean:

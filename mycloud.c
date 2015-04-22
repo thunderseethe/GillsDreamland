@@ -1,16 +1,23 @@
 #include "mycloud.h"
 
 int create_req(unsigned char* request, int req_len, unsigned long hKey, unsigned long hType, char* filename, unsigned long hSize, char* data){
+	//Invalid Type check
 	if(hType < 0 || hType > 4){
+		printf("Type: %lu, Invalid type", hType);
 		return -1;
 	}
 	int filename_length = strlen(filename);
+	//Invalid filename length check
 	if(filename_length > 80){
+		printf("Filename: %s, is an invalid length", filename);
 		return -1;
 	}
+	//Convert the numbers to network byte order
 	unsigned long key = htonl(hKey);
 	unsigned long type = htonl(hType);
 	unsigned long nSize = htonl(hSize);
+
+	//Loop through and build char* request case by case
 	for(int i = 0; i < req_len; i++){
 		//0-3: secret key
 		if(i <= 3){
@@ -39,6 +46,7 @@ int create_req(unsigned char* request, int req_len, unsigned long hKey, unsigned
 	return 0;
 }
 
+//Wrappers for create_req
 int build_put_req(unsigned char* request, unsigned long hKey, char* filename, unsigned long hSize, char* data){
 	return create_req(request, 92+hSize, hKey, 1, filename, hSize, data);
 }
@@ -52,6 +60,24 @@ int build_list_req(unsigned char* request, unsigned long hKey){
 	return create_req(request, 8, hKey, 3, "", 0, "");
 }
 
+int open_client(Request req){
+	if(strlen(req.hostname) < 0){
+		printf("Invalid Hostname: %s\n", req.hostname);
+		return -1;
+	}
+	if(req.port < 0 || req.port > 65535){
+		printf("Invalid Port(0 - 65535): %d", req.port);
+		return -1;
+	}
+	if(req.secretkey <= 0){
+		printf("Invalid Key: %lu", req.secretkey);
+		return -1;
+	}
+	int clientfd = Open_clientfd(req.hostname, req.port);
+	return clientfd;
+}
+
+//Put request api call
 int mycloud_putfile(Request server, char *filename, char *data, int size){
 	int clientfd;
 	int req_len = 92 + size;
@@ -64,151 +90,143 @@ int mycloud_putfile(Request server, char *filename, char *data, int size){
 	if(result == -1){
 		return -1;
 	}
+	//Open socket, write request, read request
 	rio_t rio;
-	clientfd = Open_clientfd(server.hostname, server.port);
+	clientfd = open_client(server);
+	if(clientfd == -1){
+		return -1;
+	}
 	Rio_readinitb(&rio, clientfd);
 	Rio_writen(clientfd, request, req_len);
 	Rio_readnb(&rio, buf, resp_len);
-	unsigned long nStatus = 0;
-	for(int i = 0; i < resp_len; i++){
-		nStatus += request[i] * (1 << (3 - i)*2);
-	}
-	printf("status: %lx", nStatus);
-	if(nStatus != 0){
+
+	//Convert buffer to int status
+	int status = char4ToInt(buf);
+	if(status != 0){
 		return -1;
 	}
 	return 0;
 }
+
+//Get request api call
 int mycloud_getfile(Request server, char *filename, char *data, int data_length){
 	int clientfd;
 	int req_len = 88;
 	unsigned char* buf = malloc(4*sizeof(unsigned char));
+
+	/* BUILD REQUEST */
 	unsigned char* request = malloc(req_len*sizeof(unsigned char));
 	int result = build_get_req(request, server.secretkey, filename);
 	if(result == -1){
 		return -1;
 	}
 
+	//Open socket, write request
 	rio_t rio;
-	clientfd = Open_clientfd(server.hostname, server.port);
+	clientfd = open_client(server);
+	if(clientfd == -1){
+		return -1;
+	}
 	Rio_readinitb(&rio, clientfd);
 	Rio_writen(clientfd, request, req_len);
+	
+	//Convert buffer to int status
 	Rio_readnb(&rio, buf, 4);
-	int nStatus = char4ToInt(buf);
-	unsigned long status = ntohl(nStatus);
+	int status = char4ToInt(buf);
 	if(status != 0){
 		return -1;
 	}
+
+	//Convert buffer to int size
 	Rio_readnb(&rio, buf, 4);
-	unsigned long nSize = 0;
-	for(int i = 0; i < 4; i++){
-		nSize += buf[i] * (1 << i*8);
-	}
-	unsigned long size = htonl(nSize);
+	int size = char4ToInt(buf);
 	if(data_length < size){
 		size = data_length;
 	}
+
+	//If size is bigger then our buffer handle it with a for loop
 	if(size < MAXLINE){
 		Rio_readnb(&rio, data, size);
 	}
 	else{
 		for(int i = 0; i < size; i += MAXLINE){
-			Rio_readnb(&rio, data+i, i);
+			Rio_readnb(&rio, data+i, MAXLINE);
 		}
 	}
-	/*printf("0:\t");
-	for(int i = 0; i < req_len; i++){
-		printf("%02X\t", request[i]);
-		if(((i+1) % 4) == 0){
-			printf("\n%d:\t", i+1);
-		}
-	}
-	printf("\n");*/
 	return size;
 }
+
 int mycloud_delfile(Request server, char* filename){
 	int clientfd;
 	int req_len = 88;
 	unsigned char* buf = malloc(4*sizeof(unsigned char));
+
+	/* BUILD REQUEST */
 	unsigned char* request = malloc(req_len*sizeof(unsigned char));
 	int result = build_del_req(request, server.secretkey, filename);
 	if(result == -1){
 		return -1;
 	}
+
+	//Open socket, write request
 	rio_t rio;
-	clientfd = Open_clientfd(server.hostname, server.port);
-	Rio_writen(clientfd, request, req_len);
-	Rio_readnb(&rio, buf, 4);
-	unsigned long nStatus = 0;
-	for(int i = 0; i < 4; i++){
-		nStatus += buf[i] * (1 << i*8);
+	clientfd = open_client(server);
+	if(clientfd == -1){
+		return -1;
 	}
-	unsigned long status = ntohl(nStatus);
+	Rio_readinitb(&rio, clientfd);
+	Rio_writen(clientfd, request, req_len);
+
+	//Convert buffer to int status
+	Rio_readnb(&rio, buf, 4);
+	int status = char4ToInt(buf);
 	if(status != 0){
 		return -1;
 	}
-	
 	return 0;
 }
+
 int mycloud_listfiles(Request server, char* listbuf, int list_length){
 	int clientfd;
 	int req_len = 8;
 	unsigned char* buf = malloc(4);
+
+	/* BUILD REQUEST */
 	unsigned char* request = malloc(req_len*sizeof(unsigned char));
 	int result = build_list_req(request, server.secretkey);
 	if(result == -1){
 		return -1;
 	}
 
+	//Open socket, write request
 	rio_t rio;
-	// printf("0:\t");
-	// for(int i = 0; i < req_len; i++){
-	// 	printf("%02X\t", request[i]);
-	// 	if(((i+1) % 4) == 0){
-	// 		printf("\n%d:\t", i+1);
-	// 	}
-	// }
-	// printf("\n");
-
-	clientfd = Open_clientfd(server.hostname, server.port);
+	clientfd = open_client(server);
+	if(clientfd == -1){
+		return -1;
+	}
 	Rio_readinitb(&rio, clientfd);
 	Rio_writen(clientfd, request, req_len);
-	Rio_readnb(&rio, buf, 4);
 	
+	//Convert buffer to int status
+	Rio_readnb(&rio, buf, 4);
 	int status = char4ToInt(buf);
-	//printf("\nstatus: %d\n", status);
 	if(status != 0){
 		return -1;
 	}
 	Rio_readnb(&rio, buf, 4);
-	// printf("buf = ");
-	// for(int i = 0; i < 4; i++){
-	// 	printf("%02x\t", buf[i]);
-	// }
-	// printf("\n");
 	int size = char4ToInt(buf);
 	if(list_length < size){
 		size = list_length;
 	}
-	//printf("size: %d\n", size);
+
+	//If size is bigger then our buffer handle it with a for loop
 	if(size < MAXLINE){
 		Rio_readnb(&rio, listbuf, size);
 	}
 	else{
 		for(int i = 0; i < size; i += MAXLINE){
-			Rio_readnb(&rio, listbuf+i, size);
+			Rio_readnb(&rio, listbuf+i, MAXLINE);
 		}
 	}
-	return 0;
-}
-int main(int argc, char** argv){
-	Request server;
-	server.hostname = "192.168.77.232";
-	server.port = 1234;
-	server.secretkey = 12345;
-	//mycloud_getfile(server, "test.txt", "file data goes here", 19);
-	char* data = malloc(100*sizeof(char));
-	mycloud_getfile(server, "test.txt", data, 100);
-	printf("data:\n%s\nEOF", data);
 	return 0;
 }

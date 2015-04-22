@@ -12,6 +12,7 @@ typedef struct {
 	unsigned long secretkey;
 } Request;
 
+
 int mycloud_putfile(Request server, char *filename, char *data, int size);
 int mycloud_getfile(Request server, char *filename, char *data, int size);
 int mycloud_delfile(Request server, char* filename);

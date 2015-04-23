@@ -59,7 +59,7 @@ bool put(char* fileNameBuf, unsigned char*fileSizeBuf, char* fileContentsBuf, ri
     return success;
 }
 
-bool get(char* fileNameBuf, char* fileContentsBuf){
+bool get(char* fileNameBuf, char** fileContentsBuf){
     bool success = true;
     FILE *stream;
     unsigned int fileSize = 0;
@@ -74,9 +74,9 @@ bool get(char* fileNameBuf, char* fileContentsBuf){
         fileSize = ftell(stream);
         fseek(stream, 0L, SEEK_SET);
         //printf("fileSize: %d\n",fileSize);
-        fileContentsBuf = (char*)malloc(sizeof(char) * (fileSize+1));
+        *fileContentsBuf = (char*)malloc(sizeof(char) * (fileSize+1));
         size_t size=fread(fileContentsBuf,1,fileSize,stream);
-        fileContentsBuf[size]=0; //add EOF
+        *fileContentsBuf[size]=0; //add EOF
         //Debug print
         //printf("Read: %s\n",fileContentsBuf);
         fclose(stream);
@@ -87,7 +87,7 @@ bool get(char* fileNameBuf, char* fileContentsBuf){
     return success;
 }
 
-bool list(char* returnListBuf, int bufferSize){
+bool list(char** returnListBuf, unsigned int bufferSize){
         bool success = true;
         DIR *d, *e;
         struct dirent *dir;
@@ -104,7 +104,7 @@ bool list(char* returnListBuf, int bufferSize){
             }
         } else { success = false; }
         closedir(d);
-        returnListBuf = (char*)malloc(sizeof(char) * bufferSize);
+        *returnListBuf = (char*)malloc(sizeof(char) * bufferSize);
         e = opendir("./files");
         int counter = 0;
         if (e)
@@ -217,11 +217,11 @@ void processInput(int connfd, unsigned int secretKey) {
             error = true;
     }
     if (shouldList) {
-        if (!list(returnListBuf, bufferSize))
+        if (!list(&returnListBuf, bufferSize))
             error = true;
     }
     if(shouldGet) {
-        if (!get(fileNameBuf, fileContentsBuf))
+        if (!get(fileNameBuf, &fileContentsBuf))
             error = true;
     }
     if(shouldDel) {

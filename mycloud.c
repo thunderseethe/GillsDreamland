@@ -1,6 +1,6 @@
 #include "mycloud.h"
 
-int create_req(unsigned char* request, int req_len, unsigned long hKey, unsigned long hType, char* filename, unsigned long hSize, char* data){
+int create_req(unsigned char* request, int req_len, unsigned long hKey, unsigned long hType, char* filename, unsigned long hSize, unsigned char* data){
 	//Invalid Type check
 	if(hType < 0 || hType > 4){
 		printf("Type: %lu, Invalid type", hType);
@@ -47,17 +47,17 @@ int create_req(unsigned char* request, int req_len, unsigned long hKey, unsigned
 }
 
 //Wrappers for create_req
-int build_put_req(unsigned char* request, unsigned long hKey, char* filename, unsigned long hSize, char* data){
+int build_put_req(unsigned char* request, unsigned long hKey, char* filename, unsigned long hSize, unsigned char* data){
 	return create_req(request, 92+hSize, hKey, 1, filename, hSize, data);
 }
 int build_get_req(unsigned char* request, unsigned long hKey, char* filename){
-	return create_req(request, 88, hKey, 0, filename, 0, "");
+	return create_req(request, 88, hKey, 0, filename, 0, (unsigned char*)"");
 }
 int build_del_req(unsigned char* request, unsigned long hKey, char* filename){
-	return create_req(request, 88, hKey, 2, filename, 0, "");
+	return create_req(request, 88, hKey, 2, filename, 0, (unsigned char*)"");
 }
 int build_list_req(unsigned char* request, unsigned long hKey){
-	return create_req(request, 8, hKey, 3, "", 0, "");
+	return create_req(request, 8, hKey, 3, "", 0, (unsigned char*)"");
 }
 
 int open_client(Request req){
@@ -78,7 +78,7 @@ int open_client(Request req){
 }
 
 //Put request api call
-int mycloud_putfile(Request server, char *filename, char *data, int size){
+int mycloud_putfile(Request server, char *filename, unsigned char *data, int size){
 	int clientfd;
 	int req_len = 92 + size;
 	int resp_len = 4;
@@ -109,7 +109,7 @@ int mycloud_putfile(Request server, char *filename, char *data, int size){
 }
 
 //Get request api call
-int mycloud_getfile(Request server, char *filename, char *data, int data_length){
+int mycloud_getfile(Request server, char *filename, unsigned char *data, int data_length){
 	int clientfd;
 	int req_len = 88;
 	unsigned char* buf = malloc(4*sizeof(unsigned char));
@@ -186,7 +186,7 @@ int mycloud_delfile(Request server, char* filename){
 	return 0;
 }
 
-int mycloud_listfiles(Request server, char* listbuf, int list_length){
+int mycloud_listfiles(Request server, unsigned char* listbuf, int list_length){
 	int clientfd;
 	int req_len = 8;
 	unsigned char* buf = malloc(4);
@@ -195,6 +195,7 @@ int mycloud_listfiles(Request server, char* listbuf, int list_length){
 	unsigned char* request = malloc(req_len*sizeof(unsigned char));
 	int result = build_list_req(request, server.secretkey);
 	if(result == -1){
+		printf("Result could not be built\n");
 		return -1;
 	}
 
@@ -202,6 +203,7 @@ int mycloud_listfiles(Request server, char* listbuf, int list_length){
 	rio_t rio;
 	clientfd = open_client(server);
 	if(clientfd == -1){
+		printf("Client could not be reached");
 		return -1;
 	}
 	Rio_readinitb(&rio, clientfd);
@@ -211,6 +213,7 @@ int mycloud_listfiles(Request server, char* listbuf, int list_length){
 	Rio_readnb(&rio, buf, 4);
 	int status = char4ToInt(buf);
 	if(status != 0){
+		printf("Status is %d", status);
 		return -1;
 	}
 	Rio_readnb(&rio, buf, 4);

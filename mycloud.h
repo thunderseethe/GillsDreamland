@@ -13,9 +13,9 @@ typedef struct {
 } Request;
 
 
-int mycloud_putfile(Request server, char *filename, char *data, int size);
-int mycloud_getfile(Request server, char *filename, char *data, int size);
+int mycloud_putfile(Request server, char *filename, unsigned char *data, int size);
+int mycloud_getfile(Request server, char *filename, unsigned char *data, int size);
 int mycloud_delfile(Request server, char* filename);
-int mycloud_listfiles(Request server, char* listbuf, int length);
+int mycloud_listfiles(Request server, unsigned char* listbuf, int length);
 
 #endif

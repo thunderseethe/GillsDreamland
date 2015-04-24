@@ -9,13 +9,20 @@ int main(int argc, char* argv[]){
 		printf("Usage: %s MachineName TCPPort SecretKey\n", argv[0]);
 		return -1;
 	}
+	//Build our server info
 	Request req;
 	req.hostname = argv[1];
 	req.port = atoi(argv[2]);
 	req.secretkey = atol(argv[3]);
+
+	//Arbitrary max on list length
 	int list_length = MAXLINE;
-	char* list = (char*)malloc(MAXLINE*sizeof(char));
-	mycloud_listfiles(req, list, list_length);
-	printf("File List\n-----------\n%s", list);
+	unsigned char* list = (unsigned char*)malloc(MAXLINE*sizeof(unsigned char));
+	int res = mycloud_listfiles(req, list, list_length);
+	if(res == -1){
+		printf("Could not get list of files\n");
+		return -1;
+	}
+	printf("%s", list);
 	return 0;
 }

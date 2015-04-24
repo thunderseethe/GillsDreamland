@@ -5,26 +5,25 @@
 int main(int argc, char* argv[]){
 	if(argc < 5){
 		printf("Usage: %s MachineName TCPport SecretKey filename", argv[0]);
+		return -1;
 	}
+	//Build server info
 	Request req;
 	req.hostname = argv[1];
 	req.port = atoi(argv[2]);
 	req.secretkey = atol(argv[3]);
 	char* filename = argv[4];
-	FILE *fp = fopen(filename, "r");
-	if(fp == NULL){
-		printf("Could not read file: %s", filename);
-		return -1;
-	}
-	fseek(fp, 0, SEEK_END);
-	int size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	char* data = malloc(size*sizeof(char));
-	fread(data, size, sizeof(char), fp);
-	int res = mycloud_putfile(req, filename, data, size);
+	//Max file size of 100kB
+	int size = 102400;
+	unsigned char* data = malloc(size*sizeof(unsigned char));
+	//Read from stdin till EOF
+	int read = fread(data, sizeof(unsigned char), size , stdin);
+	int res = mycloud_putfile(req, filename, data, read);
+	//Error checking
 	if(res != 0){
 		printf("Could not put file: %s\n", filename);
 		return -1;
 	}
+	printf("Succesfully put file: %s\n", filename);
 	return 0;
 }

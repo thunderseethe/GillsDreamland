@@ -1,7 +1,10 @@
-/* 
- * echoserveri.c - An iterative echo server 
- */ 
-/* $begin echoserverimain */
+// CS 485G Project 5
+// Ethan Gill and Ethan Smith
+// Due April 24, 2015
+// server.cpp
+// This is a simple cloud server. It supports creation, deletion, listing, and sending files over TCP.
+// For more information, view the README
+// make: 'make server'
 #include "server.h"
 #include "csappcpp.h"
 #include <stdbool.h>
@@ -55,6 +58,7 @@ void processInput(int connfd, unsigned int secretKey) {
         error = true;
     }
 
+    //convert the secret key and request buffers to ints
     nsecretKey = char4ToInt(secretKeyBuf);
     request = char4ToInt(requestBuf);
     printf("Secret Key = %d\n", nsecretKey);
@@ -66,6 +70,7 @@ void processInput(int connfd, unsigned int secretKey) {
         error = true;
     }
 
+    //print some stuff to the console depending on what command is requested
     switch(request) {
         case 0:
             //get
@@ -100,37 +105,42 @@ void processInput(int connfd, unsigned int secretKey) {
             error = true;
             break;
     }
+    //if the command we're utilizing receives a filename, read it in.
     if (shouldUseFilename) {
         size = Rio_readnb(&rio, fileNameBuf, 80);
         printf("%s\n",fileNameBuf);
     }
-    if (put) {
+    if (put && !error) {
         size = Rio_readnb(&rio, fileSizeBuf, 4);
         fileSize = char4ToInt(fileSizeBuf);
-        printf("Creating file buf of size %d\n",fileSize);
+        //printf("Creating file buf of size %d\n",fileSize);
         fileContentsBuf = (char*)malloc(sizeof(char) * (fileSize+1));
         size = Rio_readnb(&rio, fileContentsBuf, fileSize);
 
         FILE *stream;
         char filePath[100];
+        //create the file path
         strcpy(filePath, "./files/");
         strcat(filePath, fileNameBuf);
         if ((stream = fopen(filePath, "w")))
         {
+            //write the file
             fwrite(fileContentsBuf, 1, fileSize, stream);
             //Debug print
-            printf("Write: %s\n",fileContentsBuf);
+            //printf("Write: %s\n",fileContentsBuf);
             fclose(stream);
         } else {
-            perror("Create file");
+            //an error occurred writing the file
+            perror("Put file");
             error = true;
         }
     }
-    if (list)
+    if (list && !error)
     {
          //for end of file
         DIR *d, *e;
         struct dirent *dir;
+        //open the files directory
         d = opendir("./files");
         if (d)
         {
@@ -138,6 +148,7 @@ void processInput(int connfd, unsigned int secretKey) {
             {
                 if (dir->d_type == DT_REG)
                 {
+                    //count up the length of each filename (for the length byte)
                     bufferSize += strlen(dir->d_name);
                     bufferSize += 1;
                 }
@@ -153,7 +164,8 @@ void processInput(int connfd, unsigned int secretKey) {
             {
                 if (dir->d_type == DT_REG)
                 {
-                    printf("%s\n",dir->d_name);
+                    //print each name to a buffer
+                    //printf("%s\n",dir->d_name);
                     char temp[strlen(dir->d_name) + 1];
                     sprintf(temp,"%s\n",dir->d_name);
                     memcpy(&returnListBuf[counter], temp, strlen(temp));
@@ -163,14 +175,14 @@ void processInput(int connfd, unsigned int secretKey) {
             }
         }
     }
-    if(get){
+    if(get && !error){
         FILE *stream;
         fileSize = 0;
         char filePath[100];
         strcpy(filePath, "./files/");
         strcat(filePath, fileNameBuf);
-
-        if ((stream = fopen(filePath, "r")))
+        //try to open the file (in the files directory)
+        if ((stream = fopen(filePath, "rb")))
         {
             //Seek to the end of the file to determine the file size
             fseek(stream, 0L, SEEK_END);
@@ -178,28 +190,30 @@ void processInput(int connfd, unsigned int secretKey) {
             fseek(stream, 0L, SEEK_SET);
             //printf("fileSize: %d\n",fileSize);
             fileContentsBuf = (char*)malloc(sizeof(char) * (fileSize+1));
-            size_t size=fread(fileContentsBuf,1,fileSize,stream);
+            size=fread(fileContentsBuf,1,fileSize,stream);
             fileContentsBuf[size]=0; //add EOF
             //Debug print
-            printf("Read: %s\n",fileContentsBuf);
+            //printf("Read: %s\n",fileContentsBuf);
+            //printf("Size T: %lu\n", size);
             fclose(stream);
         } else {
+            //an error occurred opening the file. It may not exist, or permissions aren't set
             perror("Open file");
             error = true;
         }
     }
-    if(del){
+    if(del && !error){
         char filePath[100];
         strcpy(filePath, "./files/");
         strcat(filePath, fileNameBuf);
-        printf("deleting file at path: %s\n",filePath);
+        //delete the file at path
+        //printf("deleting file at path: %s\n",filePath);
         int delResult = unlink(filePath);
         if(delResult != 0){
             error = true;
         }
     }
     //all input should be read in now. Now to handle the files themselves
-
     unsigned int returnCode;
     if(error){
         returnCode = -1;
@@ -212,19 +226,24 @@ void processInput(int connfd, unsigned int secretKey) {
     Rio_writen(connfd, returnCodeBuf, 4);
     //printf("sent\n");
 
+    //only send the get and list info if there isn't an error
     if(!error){
         switch(request) {
             case 0:
                 //get
-                bufferSize = strlen(fileContentsBuf) + 1;
-                printf("Size of file: %d\n",bufferSize);
-                intToChar4(bufferSize, returnSizeCodeBuf);
+                //bufferSize = strlen(fileContentsBuf) + 1;
+                //printf("Size of file: %lu\n",size);
+                intToChar4(size, returnSizeCodeBuf);
                 Rio_writen(connfd, returnSizeCodeBuf, 4);
-                Rio_writen(connfd, fileContentsBuf, bufferSize);
+                Rio_writen(connfd, fileContentsBuf, size);
+                // for (unsigned int i = 0; i < size; ++i)
+                // {
+                //     printf("%02x",fileContentsBuf[i]);
+                // }
                 break;
             case 3:
                 //list
-                printf("Size of files list: %d\n",bufferSize);
+                //printf("Size of files list: %d\n",bufferSize);
                 intToChar4(bufferSize, returnSizeCodeBuf);
                 Rio_writen(connfd, returnSizeCodeBuf, 4);
                 Rio_writen(connfd, returnListBuf, bufferSize);
@@ -246,6 +265,7 @@ int main(int argc, char **argv)
     //struct hostent *hp;
     //char *haddrp;
     
+    //wrong arguments
     if (argc != 3) {
     fprintf(stderr, "usage: %s <port> <secretKey>\n", argv[0]);
     exit(0);
@@ -259,10 +279,7 @@ int main(int argc, char **argv)
     {
         perror("mkdir");
     }
-    //TODO: clear the directory of files (because we aren't supposed to keep them?)
-
-
-
+    //get the port and secret key
     port = atoi(argv[1]);
     secretKey = atoi(argv[2]);
 
@@ -284,4 +301,3 @@ int main(int argc, char **argv)
     
     exit(0);
 }
-/* $end echoserverimain */

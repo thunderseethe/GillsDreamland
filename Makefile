@@ -39,4 +39,4 @@ mclist: mclist.c csapp.o mycloud.o util.o
 
 .PHONY: clean
 clean:
-	/bin/rm -rf csapp.h csapp.c *.o server mcput mcget mcdel mclist mycloud
+	/bin/rm -rf csapp.h csapp.c *.o mycloud_server mcput mcget mcdel mclist mycloud

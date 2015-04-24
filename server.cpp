@@ -6,7 +6,6 @@
 // For more information, view the README
 // make: 'make server'
 #include "server.h"
-#include "csapp.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +17,7 @@
 
 extern "C" {
     #include "util.h"
+    #include "csapp.h"
 }
 
 void processInput(int connfd, unsigned int secretKey) {

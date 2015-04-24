@@ -4,7 +4,7 @@
 
 int main(int argc, char* argv[]){
 	if(argc < 5){
-		printf("Usage: %s MachineName TCPport SecretKey filename", argv[0]);
+		printf("Usage: %s <host> <port> <secret key> <filename>\n", argv[0]);
 		return -1;
 	}
 	//Build request server info

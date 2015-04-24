@@ -6,7 +6,7 @@ int main(int argc, char* argv[]){
 	//Check appropiate command usage
 	//We don't mind if you have more then 4, you just need atleast 4
 	if(argc < 4){
-		printf("Usage: %s MachineName TCPPort SecretKey\n", argv[0]);
+		printf("Usage: %s <host> <port> <secret key>\n", argv[0]);
 		return -1;
 	}
 	//Build our server info

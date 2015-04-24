@@ -1,7 +1,7 @@
 CFLAGS = -Wall -std=gnu99
 CPPFLAGS = -Wall
 
-all: server mcput mcget mcdel mclist
+all: server client
 
 csapp.h:
 	wget http://csapp.cs.cmu.edu/2e/ics2/code/include/csapp.h
@@ -14,7 +14,7 @@ csapp.o: csapp.h csapp.c
 util.o: util.c
 	gcc $(CFLAGS) util.c -c
 
-server: server.cpp csappcpp.h csapp.o util.o
+server: server.cpp csapp.h csapp.o util.o
 	g++ $(CPPFLAGS) server.cpp csapp.o util.o -lpthread -o mycloud_server
 
 mycloud.o: mycloud.c

@@ -9,17 +9,13 @@ csapp.h:
 csapp.c:
 	wget http://csapp.cs.cmu.edu/2e/ics2/code/src/csapp.c
 
-csappcpp.h:
-	wget http://www.cs.uky.edu/~raphael/courses/CS485/proj5/csappcpp.h
-
 csapp.o: csapp.h csapp.c
-
 
 util.o: util.c
 	gcc $(CFLAGS) util.c -c
 
 server: server.cpp csappcpp.h csapp.o util.o
-	g++ $(CPPFLAGS) server.cpp csapp.o util.o -lpthread -o server
+	g++ $(CPPFLAGS) server.cpp csapp.o util.o -lpthread -o mycloud_server
 
 mycloud.o: mycloud.c
 	gcc $(CFLAGS) mycloud.c -c -o mycloud.o

@@ -1,0 +1,79 @@
+CS 485 Project 5
+Ethan Gill
+Ethan Smith
+
+mycloud is a set of server and client applications used to send and receive files over TCP.
+The following programs are included:
+
+client/
+mcget: sends a filename gets that file in the form of a buffer from the server
+mcput: sends a filename and file data in a buffer to be created by the server
+mcdel: sends a filename for the server to delete
+mclist: sends a list request and gets a buffer with names of each file on the server
+
+server/
+mycloud_server: responds to get, put, del, and list commands from the client
+
+The server IP Address is <address>.
+All programs communicate over a port <port>.
+All client programs communicate a secret key <key> to the server before any other data is sent.
+
+Server Usage:
+	mycloud_server <port> <key>
+The server will listen for incoming connections on the specified port.
+
+Client Usage:
+	mclist <address> <port> <key>
+	mcdel <address> <port> <key> <filename>
+	mcget <address> <port> <key> <filename>
+	cat <filename> | mcput <address> <port> <key>
+
+Server Response:
+The server will return a success code for each request. This code will be 0 for success and -1 for error.
+Possible errors include receiving an incorrect secret key and errors with file creation/access due to permissions.
+
+Extra features (not included in project guidelines):
+	mycloud_server does NOT lose files when execution is halted. Any files created in previous executions will be accessible by future executions.
+
+Design Choices:
+	The creation of subdirectories is not allowed. This is not part of the project guidelines, so it was left out for simplicity.
+	Upon first run, mycloud_server creates a subdirectory 'files' to store all data sent to it. This directory can be deleted after execution, or left alone.
+	If it is left, the files present in it will be accessible by the client on the next run of mycloud_server.
+
+Protocol (from the Project Guidelines):
+Store Message Formats
+	Store Request
+		Bytes 0-3: A 4-byte unsigned integer containing SecretKey (stored in network byte order)
+		Bytes 4-7: A 4-byte unsigned integer containing the type of request which is one of get (0), put (1), del (2), or list (3) — in this case the value is 1. Sent in network byte order.
+		Bytes 8-87: An 80-byte buffer containing the Filename (stored as a null terminated character string starting at the beginning of the buffer).
+		Bytes 87-91: A 4-byte unsigned integer containing the number of bytes in the file (in network byte order)
+		Bytes 92-N: N-92 bytes of file data, where N is the size of the message being sent.
+	Store Response
+		Bytes 0-3: A 4-byte unsigned integer containing the return status of operation Status. Status can be 0 (success) or -1 (error). Sent in network byte order.
+
+Retrieve Message Formats
+	Retrieve Request
+		Bytes 0-3: A 4-byte unsigned integer containing SecretKey (stored in network byte order)
+		Bytes 4-7: A 4-byte unsigned integer containing the type of request which is one of get (0), put (1), del (2), or list (3) — in this case the value is 0. Sent in network byte order.
+		Bytes 8-87: An 80-byte buffer containing the Filename (stored as a null terminated character string starting at the beginning of the buffer).
+	Retrieve Response
+		Bytes 0-3: A 4-byte unsigned integer containing the return status of operation Status. Status can be 0 (success) or -1 (error). Sent in network byte order.
+		Bytes 4-7: A 4-byte unsigned integer containing the number of bytes in the file (in network byte order)
+		Bytes 8-N: N-8 bytes of file data, where N is the size of the message being returned.
+
+Delete Message Formats
+	Delete Request
+		Bytes 0-3: A 4-byte unsigned integer containing SecretKey (stored in network byte order)
+		Bytes 4-7: A 4-byte unsigned integer containing the type of request which is one of get (0), put (1), del (2), or list (3) — in this case the value is 2. Sent in network byte order.
+		Bytes 8-87: An 80-byte buffer containing the Filename (stored as a null terminated character string starting at the beginning of the buffer).
+	Delete Response
+		Bytes 0-3: A 4-byte unsigned integer containing the return status of operation Status. Status can be 0 (success) or -1 (error). Sent in network byte order.
+
+List Message Formats
+	List Files Request
+		Bytes 0-3: A 4-byte unsigned integer containing SecretKey (stored in network byte order)
+		Bytes 4-7: A 4-byte unsigned integer containing the type of request which is one of get (0), put (1), del (2), or list (3) — in this case the value is 3. Sent in network byte order.
+	List Files Response
+		Bytes 0-3: A 4-byte unsigned integer containing the return status of operation Status. Status can be 0 (success) or -1 (error). Sent in network byte order.
+		Bytes 4-7: A 4-byte unsigned integer containing the number of bytes in the file listing (in network byte order)
+		Bytes 8-N: N-8 bytes of list data, where N is the size of the message.
